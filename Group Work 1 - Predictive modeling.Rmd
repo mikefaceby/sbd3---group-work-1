@@ -8,8 +8,19 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+# Load libraries
+library(writexl)
+
 # Load the data
 load("data_wage.RData")
+
+```
+
+
+```{r cars}
+
+# Export to Excel
+write_xlsx(data, "data_wage_editable.xlsx")
 
 ```
 
