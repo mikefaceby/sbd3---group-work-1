@@ -5,41 +5,85 @@ date: "2025-05-26"
 output: html_document
 ---
 
+# Introduction
+What is the assignment all about. 
+
+# Load and prepare the data
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 # Load libraries
 library(writexl)
+library(readxl)
 
 # Load the data
 load("data_wage.RData")
 
+# Rename for clarity
+data_original <- data
+rm(data)  # Optional: remove old name to avoid confusion
+
 ```
 
-
-```{r cars}
+Make a copy from the original dataset to excel. so all of the group members can answer the questions and fill them directly in a separated row in the excel file. 
+```{r export csv file to data}
 
 # Export to Excel
-write_xlsx(data, "data_wage_editable.xlsx")
+write_xlsx(data_original, "data_wage_editable.xlsx")
 
 ```
 
-## R Markdown
+After everyone filled the excel file out, we load the filled excel file. 
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r upload filled excel file}
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+# Read the filled-in Excel file
+data <- read_excel("data_wage_filled.xlsx")
 
-```{r cars}
-summary(cars)
 ```
 
-## Including Plots
+```{r }
 
-You can also embed plots, for example:
+names(data)
+str(data)
 
-```{r pressure, echo=FALSE}
-plot(pressure)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# Preprocessing
+
+```{r export csv file to data}
+
+names(data)
+str(data)
+
+```
+
+
+# Training and Testing
+
+```{r export csv file to data}
+
+names(data)
+str(data)
+
+```
+
+# Explanation of the model
+
+```{r export csv file to data}
+
+names(data)
+str(data)
+
+```
+
+# Prediction of our wages
+
+```{r export csv file to data}
+
+names(data)
+str(data)
+
+```
+
