@@ -5,8 +5,10 @@ date: "2025-05-26"
 output: html_document
 ---
 
+HALLO DONJET - UPLOADE DS FILE JITZE. ZEIT: 21:52 - LÖSCH DIE LINE USE - ISCH NUR ZUR INFO
+
 # Introduction
-What is the assignment all about. Donjet is the King! 
+What is the assignment all about. Donjet is the King! - Yessir
 
 # Load and prepare the data
 
@@ -16,13 +18,15 @@ knitr::opts_chunk$set(echo = TRUE)
 # Load libraries
 library(writexl)
 library(readxl)
+library(knitr)
+
 
 # Load the data
 load("data_wage.RData")
 
-# Rename for clarity
+# Rename 
 data_original <- data
-rm(data)  # Optional: remove old name to avoid confusion
+rm(data)  # Remove old name to avoid confusion
 
 ```
 
@@ -43,67 +47,140 @@ data <- read_excel("data_wage_filled.xlsx")
 
 ```
 
-```{r }
-View(data)
-names(data)
+# Data Exploration
+Explore the data
+
+## Dimensions of the dataset
+
+```{r dimensions }
+dim(data)
+
+```
+## First and last few rows
+
+```{r head}
+
+# Display the first few rows
+kable(
+  head(data),
+  caption = "First Few Rows of the Dataset"
+)
+
+```
+
+```{r tail}
+
+# Display the last few rows
+kable(
+  tail(data),
+  caption = "Last Few Rows of the Dataset"
+)
+
+```
+
+## Structure of the dataset
+maybe also display a summary of how many numerical, categorical, ... variables there are in the dataset (different data types)
+
+```{r structure }
+
 str(data)
 
 ```
+
 # Feature Selection
-Clear justification for selected features
+Clear justification for selected features. why did we chose the features we have chosen
+
+Use this to determine: 
+t-test for numerical variables?
+calculate p-value for numerical variables?
+Or Boruta algorithm?
 
 # Data Quality Issues 
 
-Handle missing values
+## Completeness
+missing values
+na's
 
-Convert categorical variables to factors
+```{r completeness }
 
+str(data)
+
+```
+
+## Duplicates
+
+```{r duplicates }
+
+str(data)
+
+```
+
+## Data Consistency
+Convert categorical variables to factors (Explain why)
 (Optionally) one-hot encode factors
 
-Normalize numeric features (standardisation)
+```{r data consistency }
 
-```{r export csv file to data}
-
-names(data)
 str(data)
+
+```
+
+## Outliers
+
+```{r completeness }
+
+str(data)
+
+```
+
+## Standardization
+
+```{r standardization}
+
 
 ```
 
 # Model choice
-Explain the chosen model
-Why did we chose this model
-
+Describe the chosen model
+Why did we chose this model (proper explanation)
 
 # Training
-why 80/20 - explain
+explain how we train and why we train the way we train
 
-```{r export csv file to data}
+```{r training}
 
-names(data)
-str(data)
+
 
 ```
 
 # Testing
-explain the evaluation metrics, why use them
-Evaluate performance of model
+explain the used evaluation metrics, justify - why do we use the metrics we use
+
+Then evaluate performance of the model
+
+```{r testing}
+
+
+
+```
 
 # Explanation of the model
+Describe the used explanation techniques
 Run explainability techniques
+Clear understanding of which features drive predictions and how they influence wage predictions. 
 
-```{r export csv file to data}
+(Gini importance, permutation feature importance (PDP), Individual Conditional Expections (ICE), Lime, SHAP)
 
-names(data)
-str(data)
+```{r explainability techniques}
+
 
 ```
 
 # Prediction of our wages
+Use model to predict our wages
 
-```{r export csv file to data}
+```{r prediction of our wages}
 
-names(data)
-str(data)
 
 ```
 
