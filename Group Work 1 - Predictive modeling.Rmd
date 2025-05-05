@@ -49,8 +49,18 @@ names(data)
 str(data)
 
 ```
+# Feature Selection
+Clear justification for selected features
 
-# Preprocessing
+# Data Quality Issues 
+
+Handle missing values
+
+Convert categorical variables to factors
+
+(Optionally) one-hot encode factors
+
+Normalize numeric features (standardisation)
 
 ```{r export csv file to data}
 
@@ -59,8 +69,13 @@ str(data)
 
 ```
 
+# Model choice
+Explain the chosen model
+Why did we chose this model
 
-# Training and Testing
+
+# Training
+why 80/20 - explain
 
 ```{r export csv file to data}
 
@@ -68,8 +83,13 @@ names(data)
 str(data)
 
 ```
+
+# Testing
+explain the evaluation metrics, why use them
+Evaluate performance of model
 
 # Explanation of the model
+Run explainability techniques
 
 ```{r export csv file to data}
 
