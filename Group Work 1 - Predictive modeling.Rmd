@@ -6,7 +6,7 @@ output: html_document
 ---
 
 # Introduction
-What is the assignment all about. 
+What is the assignment all about. Donjet is the King! 
 
 # Load and prepare the data
 
