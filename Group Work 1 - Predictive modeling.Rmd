@@ -44,7 +44,7 @@ data <- read_excel("data_wage_filled.xlsx")
 ```
 
 ```{r }
-
+View(data)
 names(data)
 str(data)
 
