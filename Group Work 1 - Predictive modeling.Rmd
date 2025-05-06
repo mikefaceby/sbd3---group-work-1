@@ -5,12 +5,13 @@ date: "2025-05-26"
 output: html_document
 ---
 
-HALLO DONJET - UPLOADE DS FILE JITZE. ZEIT: 21:52 - LÖSCH DIE LINE USE - ISCH NUR ZUR INFO
-
 # Introduction
-What is the assignment all about. Donjet is the King! - Yessir
+The purpose of this project is to develop a predictive model that estimates individual wages based on a wide range of personal, educational, and professional characteristics. Using the dataset data_wage.RData, our goal is to apply supervised learning techniques to accurately predict the variable of interest, which is the wage.
+
+We will guide you through the entire process, starting with data exploration and cleaning, followed by model training and testing, and finally using the model to estimate the future salaries of our group members.
 
 # Load and prepare the data
+We start by loading the original dataset data_wage.RData. To ensure a clear workflow, we rename the dataset to data_original and remove the old variable name to avoid confusion in the following steps.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -19,7 +20,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(writexl)
 library(readxl)
 library(knitr)
-
+library(dplyr)
+library(tibble)
 
 # Load the data
 load("data_wage.RData")
@@ -30,7 +32,10 @@ rm(data)  # Remove old name to avoid confusion
 
 ```
 
-Make a copy from the original dataset to excel. so all of the group members can answer the questions and fill them directly in a separated row in the excel file. 
+Since one objective of this project is to use our predictive model to estimate the future wages of our own group members, we will export the original dataset into an editable Excel file. Each team member will then manually create a new row by answering the same set of questions included in the dataset, based on their personal background, education, experience, and other relevant characteristics.
+
+This method allows us to maintain consistency with the dataset’s structure and ensures that our self-assessed entries are in the correct format. 
+
 ```{r export csv file to data}
 
 # Export to Excel
@@ -38,7 +43,7 @@ write_xlsx(data_original, "data_wage_editable.xlsx")
 
 ```
 
-After everyone filled the excel file out, we load the filled excel file. 
+Now that all team members have completed their entries, we re-imported the updated Excel file. These additional rows are now part of the dataset and will be included in our analysis and model development moving forward.
 
 ```{r upload filled excel file}
 
@@ -48,84 +53,199 @@ data <- read_excel("data_wage_filled.xlsx")
 ```
 
 # Data Exploration
-Explore the data
+We begin our analysis with an initial exploration of the dataset to understand its structure and contents. This step is essential to get a sense of the data we're working with and to identify any immediate issues that may need attention.
 
 ## Dimensions of the dataset
+As a first step, we examine the dimensions of the dataset data, which now includes both the original survey responses and the additional entries created by our team members. Understanding the number of observations and variables provides a foundation for all further analysis.
 
 ```{r dimensions }
+
 dim(data)
 
 ```
+
+The dataset consists of 10,813 observations and 78 variables. This includes the original 10,809 responses from the survey as well as 4 additional rows that were added manually by our team members. Each observation represents one individual and the variables capture various demographic, educational, and professional characteristics relevant to wage prediction.
+
 ## First and last few rows
+To get a sense of the structure and format of our dataset, we display the first and last few rows. Given that the dataset includes 78 variables, we only show a small selection of rows and columns to maintain readability.
 
 ```{r head}
 
-# Display the first few rows
+# Show first 5 rows and first 10 variables
 kable(
-  head(data),
-  caption = "First Few Rows of the Dataset"
+  head(data[, 1:10], 5),
+  caption = "First 5 Rows (First 10 Variables)"
 )
 
 ```
+
+Looking at the first few rows, some striking patterns immediately jump out — and not by coincidence. The first four entries all come from Switzerland, represent the 22–24 age range, and hold a Bachelor's degree in Mathematics or Statistics. They’re either aspiring Data Analysts or Data Scientists, and every one of them is a student with 0–1 years of experience. 
+
+In short, it’s not hard to guess: these are us. 
+
+Further we can notice that the last column shown in this preview is a one-hot encoded variable that indicates whether someone is involved in this specific ML-related activity.
 
 ```{r tail}
 
-# Display the last few rows
+# Show last 5rows and first 10 variables
 kable(
-  tail(data),
-  caption = "Last Few Rows of the Dataset"
+  tail(data[, 1:10], 5),
+  caption = "Last 5 Rows (First 10 Variables)"
 )
+
 
 ```
 
+At the other end of the dataset, the last five rows bring us back to the diversity of the original survey respondents. Here we see individuals from countries like Turkey, India, Russia, the Netherlands, and France. Their backgrounds are just as varied — ranging from fresh graduates to seasoned professionals with over 20 years of experience. This variety highlights the richness of the dataset and the breadth of real-world contexts it captures — which will be crucial for building a model that generalizes well.
+
 ## Structure of the dataset
-maybe also display a summary of how many numerical, categorical, ... variables there are in the dataset (different data types)
+To better understand the makeup of our dataset, we begin by inspecting the structure of the variables. With 78 variables in total, a full printout using str(data) would be too lengthy and clutter the markdown output. Instead, we limit the preview to the first 9 variables, which gives us a clear sense of how the dataset is structured without overwhelming the document.
 
 ```{r structure }
 
-str(data)
+str(data[, 1:9])
 
 ```
 
-# Feature Selection
-Clear justification for selected features. why did we chose the features we have chosen
+The structure preview of the first 10 variables reveals that all of them are currently stored as character data types (chr). This is important to note because many of these variables — such as gender, education, and job_role — are clearly categorical in nature. Before we can use them in a predictive model, we will need to convert them into appropriate formats, such as factors or one-hot encoded variables. This observation highlights the need for a careful and thoughtful preprocessing phase, especially for handling categorical data correctly.
 
-Use this to determine: 
-t-test for numerical variables?
-calculate p-value for numerical variables?
-Or Boruta algorithm?
+In addition to this partial structure, we summarize the data types of all variables in the dataset. This overview helps us identify how many variables are categorical, numeric, logical, or of other types.
+
+```{r structure }
+
+# Count variable types
+table(sapply(data, class))
+
+```
+
+This output tells us that the dataset contains 14 character variables and 64 numeric variables. The high number of numeric variables suggests that many features are already in a format suitable for modeling, which is convenient. However, the 14 character variables will require transformation. These are likely to include key predictors such as demographic information, education level, job role, or region — all of which may play an important role in wage prediction.
+
+This breakdown gives us a solid foundation for planning our preprocessing pipeline in the next steps.
 
 # Data Quality Issues 
+Before diving into feature selection and model building, it is essential to assess the quality of the dataset. High-quality data is the foundation of any reliable predictive model. In this section, we systematically check for common data quality issues such as missing values, inconsistent formatting, or variable types that may require transformation.
+
+Identifying and addressing these issues early on ensures that the subsequent steps are built on clean and trustworthy data
 
 ## Completeness
-missing values
-na's
+One of the first aspects to assess when evaluating data quality is completeness. Specifically, whether there are any missing values (NAs) in the dataset. Missing values can negatively impact the performance of machine learning models and must be handled appropriately before training.
+
+To investigate completeness, we inspect the dataset for the presence of missing values.
 
 ```{r completeness }
 
-str(data)
+# Total number of missing values in the dataset
+sum(is.na(data))
 
 ```
 
+The dataset contains 4 missing values. Let’s identify which variable they belong to.
+
+```{r completeness }
+
+# Number of missing values per variable
+na_counts <- colSums(is.na(data))
+na_counts[na_counts > 0]  # Show only variables with missing values
+
+```
+
+These missing values are all located in the wage variable and correspond to the manually added rows from our group members. We intentionally left the wage field blank. This makes perfect sense from a project perspective, as our objective is to predict these exact wage values using our trained model.
+
+Importantly, this means that the original dataset is complete and contains no missing values. Therefore, we can proceed with confidence, knowing that our training data is fully intact and that we only need to handle missing values in our own prediction entries.
+
+**What to Do with These NA Wages?**
+We will leave the wage values for our group members as NA, since these are the targets we aim to predict. During model training, we will exclude these four rows to avoid any leakage or distortion of model evaluation. Once the model is trained and validated, we will then apply it specifically to these rows to generate our predicted salaries.
+
 ## Duplicates
+Another important step in assessing data quality is checking for duplicate rows. Duplicate entries can bias model training by overrepresenting certain individuals or responses, potentially skewing the predictions. Especially in survey data, it’s important to ensure each response represents a unique individual.
+
+In this section, we check whether the dataset contains any exact duplicates.
 
 ```{r duplicates }
 
-str(data)
+# Check for duplicate rows
+sum(duplicated(data))
 
 ```
+
+The output shows that there are 0 duplicate rows in the dataset. This confirms that each observation in the dataset is unique, and no duplicate responses are present. 
 
 ## Data Consistency
-Convert categorical variables to factors (Explain why)
-(Optionally) one-hot encode factors
+Before we can train any reliable machine learning model, we need to ensure that the data is not only complete but also internally consistent. Data consistency refers to making sure that each variable is stored in the correct format, contains coherent values, and is structured in a way that models can properly interpret.
 
-```{r data consistency }
+In this step, we focus on aligning data types with their intended use  and checking for inconsistencies in how categories are recorded. 
 
-str(data)
+Ensuring consistency at this stage prevents problems during model training and improves both the performance and interpretability of our models.
+
+### Convert Categorical Variables to Factors
+In this step, we ensure that all categorical variables in the dataset are consistently and correctly formatted by converting them from character type to factor type. This is important because many of our variables — such as gender, education, or job role — represent distinct categories rather than free text. 
+
+In R, treating these variables as factors allows machine learning models to correctly interpret them as discrete, non-numeric values with specific levels. This distinction is essential for algorithms like decision trees or random forests, which can leverage the factor structure directly. 
+
+We perform this transformation using a simple and efficient command that automatically converts all character variables in the dataset into factors.
+
+```{r convert categorical variables to factors}
+
+# Convert all character variables to factors
+data <- data %>%
+  mutate(across(where(is.character), as.factor))
+
+# Count variable types
+table(sapply(data, class))
 
 ```
 
+All categorical variables have now been successfully converted into factors, ensuring that they are properly recognized and handled as discrete categories in the modeling process.
+
+### Standardize inconsistent values
+Before moving on to modeling, we take a moment to ensure that all factor levels are consistent and free from redundant or misformatted entries. In survey data, it's common to encounter small inconsistencies — for example, the same category entered with different capitalizations or spellings.
+
+```{r completeness }
+
+# Extract factor variables
+factor_vars <- data[, sapply(data, is.factor)]
+
+# Create a list of factor levels
+levels_list <- lapply(factor_vars, levels)
+
+# Convert to a named data frame for display
+levels_table <- tibble(
+  Variable = names(levels_list),
+  Levels = sapply(levels_list, function(x) paste(x, collapse = ", "))
+)
+
+# Display as a kable table
+kable(levels_table, caption = "Levels of All Factor Variables (After Standardization)")
+
+```
+
+After inspecting the levels of all factor variables, we found that the only noteworthy inconsistency appears in the variable Programming_language_used_most_often, where both python and Python exist as separate categories. Since these clearly refer to the same programming language, we standardize them by replacing all instances of python with Python. This ensures consistency and prevents the model from treating identical values as different categories. 
+
+No other inconsistencies were detected in the factor levels.
+
+```{r replace python with Python }
+
+
+# Replace 'python' with 'Python'
+levels(data$Programming_language_used_most_often)[
+  levels(data$Programming_language_used_most_often) == "python"
+] <- "Python"
+
+# Check updated levels
+levels(data$Programming_language_used_most_often)
+
+
+```
+As we can now see, only Python remains, which confirms that the standardization was successful and the inconsistency has been resolved.
+
 ## Outliers
+
+
+HERE CONTINUEEEEEEEEE
+
+
+
+
 
 ```{r completeness }
 
@@ -140,9 +260,20 @@ str(data)
 
 ```
 
-# Model choice
+# Feature Selection
+Clear justification for selected features. why did we chose the features we have chosen
+
+Use this to determine: 
+t-test for numerical variables?
+calculate p-value for numerical variables?
+Or Boruta algorithm?
+
+# Model Selection
 Describe the chosen model
 Why did we chose this model (proper explanation)
+
+### Depends on the model i have chosen - One hot encoding? ###
+
 
 # Training
 explain how we train and why we train the way we train
@@ -164,7 +295,7 @@ Then evaluate performance of the model
 
 ```
 
-# Explanation of the model
+# Explainability Analysis 
 Describe the used explanation techniques
 Run explainability techniques
 Clear understanding of which features drive predictions and how they influence wage predictions. 
@@ -184,3 +315,4 @@ Use model to predict our wages
 
 ```
 
+# Conclusion and Reflections
