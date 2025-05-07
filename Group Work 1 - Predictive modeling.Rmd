@@ -239,24 +239,110 @@ levels(data$Programming_language_used_most_often)
 As we can now see, only Python remains, which confirms that the standardization was successful and the inconsistency has been resolved.
 
 ## Outliers
+Outliers are data points that are very different from the rest. For example, someone who says they have 40 years of experience when most people have less than 10 years, or a salary that is 10 times higher than the average. These extreme values can change our model's estimates or make thresholds not match up. So it's important to find and understand these values before moving forward.
 
-
-HERE CONTINUEEEEEEEEE
-
-
-
-
+In this step, we first tally how many observations fall outside the “normal” range for each numeric feature. Next, we highlight which variables harbor a substantial number of outliers. And then we decide how to handle them—whether to apply a transformation.
 
 ```{r completeness }
+# 0. Sanity check: data must be a data.frame/tibble
+if (!is.data.frame(data)) {
+  stop("`data` is not a data.frame. Please re-run the Excel import chunk before this outlier check.")
+}
 
-str(data)
+# 1. Identify continuous numeric vars (numeric & >10 unique values)
+cont_vars <- names(data)[sapply(data, function(x) is.numeric(x) && n_distinct(x) > 10)]
+
+# 2. Count outliers for each via boxplot.stats()
+outlier_counts <- sapply(cont_vars, function(var) {
+  length(boxplot.stats(data[[var]])$out)
+}, simplify = TRUE)
+
+# 3. Build a data frame and filter to those with outliers
+outlier_df <- data.frame(
+  variable   = cont_vars,
+  n_outliers = as.integer(outlier_counts),
+  row.names  = NULL
+) %>%
+  filter(n_outliers > 0)
+
+# 4. Display
+if (nrow(outlier_df) == 0) {
+  cat("No outliers detected in continuous variables.\n")
+} else {
+  knitr::kable(
+    outlier_df,
+    caption = "Outliers per Continuous Variable (boxplot.stats)",
+    digits  = 0
+  )
+}
 
 ```
+First we looked for outliers in wages and there were 275 wages which are outliers and could influence our prediction model.
+
+```{r completeness1 }
+# 1. Identify continuous predictor columns:
+cont_cols <- names(data)[
+  sapply(data, function(x) is.numeric(x) && n_distinct(x) > 10)
+]
+# 2. Drop the target 'wage'
+cont_cols <- setdiff(cont_cols, "wage")
+
+# 3. Count boxplot outliers for each predictor
+outlier_counts <- sapply(cont_cols, function(var) {
+  length(boxplot.stats(data[[var]])$out)
+}, simplify = TRUE)
+
+# 4. Build and filter the results
+outlier_df <- tibble(
+  variable   = cont_cols,
+  n_outliers = as.integer(outlier_counts)
+) %>%
+  filter(n_outliers > 0)
+
+# 5. Display
+if (nrow(outlier_df)) {
+  knitr::kable(
+    outlier_df,
+    caption = "Outliers per Continuous Predictor (boxplot.stats)",
+    digits  = 0
+  )
+} else {
+  cat("No outliers detected in any continuous predictor.\n")
+}
+
+
+
+```
+After that we looked at the variables we couldn't find any outliers there. That means for example there is not one person who is 150 years old or has 100 years of expirience.
+
 
 ## Standardization
+In our wage‐prediction project, predictors such as age, years of experience and various survey counts span very different ranges. Without standardization, variables measured on larger scales would unduly influence our linear regression coefficients and tree‐based splits. If you set the mean to zero and the standard deviation to one, then a one-unit change in each feature will be equivalent to one standard deviation. This makes sure the coefficients are all the same, keeps any regularisation stable, and produces more reliable, easy-to-understand models.
 
 ```{r standardization}
+# 1. Identify numeric predictor columns (exclude wage)
+num_preds <- names(data)[sapply(data, is.numeric) & names(data) != "wage"]
 
+# 2. Center and scale each predictor
+data <- data %>%
+  mutate(across(all_of(num_preds),
+                ~ (. - mean(. , na.rm = TRUE)) / sd(. , na.rm = TRUE)))
+
+# 3. Verify that each now has mean ≈ 0 and SD ≈ 1
+stats <- map_df(num_preds, function(var) {
+  v <- data[[var]]
+  tibble(
+    variable = var,
+    mean     = mean(v, na.rm = TRUE),
+    sd       = sd(v,   na.rm = TRUE)
+  )
+})
+
+stats %>%
+  kable(
+    caption = "Means and SDs of Predictors After Standardization",
+    digits  = 3
+  )
 
 ```
 
