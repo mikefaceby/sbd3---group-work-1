@@ -8,6 +8,10 @@ output: html_document
 # Introduction
 The purpose of this project is to develop a predictive model that estimates individual wages based on a wide range of personal, educational, and professional characteristics. Using the dataset data_wage.RData, our goal is to apply supervised learning techniques to accurately predict the variable of interest, which is the wage.
 
+Beyond predictive accuracy, a key focus of this project is on Explainable Artificial Intelligence (XAI). While machine learning models can uncover complex patterns and deliver powerful predictions, they often operate as black boxes. This raises critical concerns about transparency, fairness, and trust. XAI methods help address these challenges by making model behavior interpretable and understandable. In this project, we apply explainability techniques to identify the key factors driving wage predictions.
+
+Through this approach, we aim not only to build a high-performing model but also to ensure that its predictions are transparent, fair, and justifiable.
+
 We will guide you through the entire process, starting with data exploration and cleaning, followed by model training and testing, and finally using the model to estimate the future salaries of our group members.
 
 # Load and prepare the data
@@ -22,6 +26,7 @@ library(readxl)
 library(knitr)
 library(dplyr)
 library(tibble)
+library(ggplot2)
 
 # Load the data
 load("data_wage.RData")
@@ -141,7 +146,7 @@ sum(is.na(data))
 
 The dataset contains 4 missing values. Let’s identify which variable they belong to.
 
-```{r completeness }
+```{r completeness - number of missing values }
 
 # Number of missing values per variable
 na_counts <- colSums(is.na(data))
@@ -149,12 +154,22 @@ na_counts[na_counts > 0]  # Show only variables with missing values
 
 ```
 
-These missing values are all located in the wage variable and correspond to the manually added rows from our group members. We intentionally left the wage field blank. This makes perfect sense from a project perspective, as our objective is to predict these exact wage values using our trained model.
-
-Importantly, this means that the original dataset is complete and contains no missing values. Therefore, we can proceed with confidence, knowing that our training data is fully intact and that we only need to handle missing values in our own prediction entries.
+These missing values are all located in the wage variable and correspond to the four manually added rows from our group members. We intentionally left the wage field blank, as these entries are meant to serve as test cases for our final model predictions. This makes perfect sense from a project perspective.
 
 **What to Do with These NA Wages?**
-We will leave the wage values for our group members as NA, since these are the targets we aim to predict. During model training, we will exclude these four rows to avoid any leakage or distortion of model evaluation. Once the model is trained and validated, we will then apply it specifically to these rows to generate our predicted salaries.
+To ensure a clean and consistent dataset for model training, we extract all observations where the wage value is missing (NA) into a new dataset named data_team. These rows represent the entries from our team members and are excluded from the training data.
+
+After this separation, we remove these rows from the main dataset (data). The result is a dataset that contains only the original survey responses, all of which are complete and contain no missing values. This allows us to proceed with confidence, knowing that our training data is fully intact and suitable for building a reliable predictive model.
+
+```{r completeness - number of missing values }
+
+# Extract rows with NA in wage (our own entries)
+data_team <- data %>% filter(is.na(wage))
+
+# Remove these rows from the main dataset
+data <- data %>% filter(!is.na(wage))
+
+```
 
 ## Duplicates
 Another important step in assessing data quality is checking for duplicate rows. Duplicate entries can bias model training by overrepresenting certain individuals or responses, potentially skewing the predictions. Especially in survey data, it’s important to ensure each response represents a unique individual.
@@ -200,7 +215,7 @@ All categorical variables have now been successfully converted into factors, ens
 ### Standardize inconsistent values
 Before moving on to modeling, we take a moment to ensure that all factor levels are consistent and free from redundant or misformatted entries. In survey data, it's common to encounter small inconsistencies — for example, the same category entered with different capitalizations or spellings.
 
-```{r completeness }
+```{r standardize }
 
 # Extract factor variables
 factor_vars <- data[, sapply(data, is.factor)]
@@ -236,123 +251,146 @@ levels(data$Programming_language_used_most_often)
 
 
 ```
-As we can now see, only Python remains, which confirms that the standardization was successful and the inconsistency has been resolved.
+As we can now see, only Python remains, which confirms that the the inconsistency has been resolved.
 
 ## Outliers
-Outliers are data points that are very different from the rest. For example, someone who says they have 40 years of experience when most people have less than 10 years, or a salary that is 10 times higher than the average. These extreme values can change our model's estimates or make thresholds not match up. So it's important to find and understand these values before moving forward.
+Outliers are data points that deviate significantly from the overall distribution of a variable. For instance, an individual reporting 40 years of work experience in a dataset where the majority have less than 10 years, or a salary that is ten times higher than the average, would be considered outliers. These extreme values can distort model estimates, influence summary statistics, and influence model performance, especially in regression-based methods. Therefore, it is crucial to detect and assess such values before proceeding with model development.
 
-In this step, we first tally how many observations fall outside the “normal” range for each numeric feature. Next, we highlight which variables harbor a substantial number of outliers. And then we decide how to handle them—whether to apply a transformation.
+Since our target variable is wage, this is the primary variable of concern when checking for outliers. We begin by visualizing the wage distribution to detect any extreme values.
 
-```{r completeness }
-# 0. Sanity check: data must be a data.frame/tibble
-if (!is.data.frame(data)) {
-  stop("`data` is not a data.frame. Please re-run the Excel import chunk before this outlier check.")
-}
+```{r outliers wage plot }
 
-# 1. Identify continuous numeric vars (numeric & >10 unique values)
-cont_vars <- names(data)[sapply(data, function(x) is.numeric(x) && n_distinct(x) > 10)]
-
-# 2. Count outliers for each via boxplot.stats()
-outlier_counts <- sapply(cont_vars, function(var) {
-  length(boxplot.stats(data[[var]])$out)
-}, simplify = TRUE)
-
-# 3. Build a data frame and filter to those with outliers
-outlier_df <- data.frame(
-  variable   = cont_vars,
-  n_outliers = as.integer(outlier_counts),
-  row.names  = NULL
-) %>%
-  filter(n_outliers > 0)
-
-# 4. Display
-if (nrow(outlier_df) == 0) {
-  cat("No outliers detected in continuous variables.\n")
-} else {
-  knitr::kable(
-    outlier_df,
-    caption = "Outliers per Continuous Variable (boxplot.stats)",
-    digits  = 0
+# Boxplot showing wage distribution with outliers
+ggplot(data, aes(y = wage)) +
+  geom_boxplot(fill = "lightblue", outlier.shape = 16) +
+  labs(
+    title = "Boxplot of Wage",
+    y = "Wage (USD)"
   )
-}
-
-```
-First we looked for outliers in wages and there were 275 wages which are outliers and could influence our prediction model.
-
-```{r completeness1 }
-# 1. Identify continuous predictor columns:
-cont_cols <- names(data)[
-  sapply(data, function(x) is.numeric(x) && n_distinct(x) > 10)
-]
-# 2. Drop the target 'wage'
-cont_cols <- setdiff(cont_cols, "wage")
-
-# 3. Count boxplot outliers for each predictor
-outlier_counts <- sapply(cont_cols, function(var) {
-  length(boxplot.stats(data[[var]])$out)
-}, simplify = TRUE)
-
-# 4. Build and filter the results
-outlier_df <- tibble(
-  variable   = cont_cols,
-  n_outliers = as.integer(outlier_counts)
-) %>%
-  filter(n_outliers > 0)
-
-# 5. Display
-if (nrow(outlier_df)) {
-  knitr::kable(
-    outlier_df,
-    caption = "Outliers per Continuous Predictor (boxplot.stats)",
-    digits  = 0
-  )
-} else {
-  cat("No outliers detected in any continuous predictor.\n")
-}
-
 
 
 ```
-After that we looked at the variables we couldn't find any outliers there. That means for example there is not one person who is 150 years old or has 100 years of expirience.
+We can see that we do have some outliers in the wage variable, as expected. Let’s now examine how many observations fall outside the typical range.
+
+To identify outliers, we use the Interquartile Range (IQR) rule, a standard method for detecting extreme values in continuous data. The IQR is the difference between the third quartile (Q3) and the first quartile (Q1). Outliers are defined as values that fall below Q1 - 1.5 × IQR or above Q3 + 1.5 × IQR. The table below shows how many observations in our dataset meet this condition. TRUE indicates an observation is classified as an outlier. FALSE means the observation lies within the normal range and is not an outlier.
+
+```{r outliers wage table }
+
+# Calculate IQR thresholds
+Q1 <- quantile(data$wage, 0.25)
+Q3 <- quantile(data$wage, 0.75)
+IQR_value <- Q3 - Q1
+
+lower_bound <- Q1 - 1.5 * IQR_value
+upper_bound <- Q3 + 1.5 * IQR_value
+
+# Flag outliers
+data$outlier_flag <- ifelse(data$wage < lower_bound | data$wage > upper_bound, TRUE, FALSE)
+
+# Count outliers vs non-outliers
+table(data$outlier_flag)
+
+
+```
+
+Based on the IQR rule, a total of 275 observations have been identified as outliers in the wage variable. Given that this number is relatively small compared to the 10,534 non-outlier observations, we decide to remove these outliers from the dataset. This approach ensures that our model is trained on clean and representative data, without being influenced by extreme wage values that could distort predictions.
+
+```{r outliers wage remove }
+
+# Remove wage outliers from the dataset
+data <- data %>% filter(outlier_flag == FALSE)
+
+# Count outliers vs non-outliers
+table(data$outlier_flag)
+
+#Remove the outlier_flag column
+data$outlier_flag <- NULL
+
+
+```
+As shown in the table above, all outliers have been successfully removed from the dataset. The only remaining entries are those labeled FALSE, confirming that no outliers are present in the wage variable anymore.
+
+As the other variables in the dataset are all either of type factor or numeric, no further outlier treatment is necessary. Outlier detection is only relevant for continuous numeric variables. All factor variables represent categorical information and therefore do not require outlier handling. The remaining numeric variables are exclusively one-hot encoded (0/1) indicators derived from multiple-choice survey questions. Since these variables are binary by nature, they cannot contain outliers and are excluded from further outlier analysis.
+
+## Investigate the target variable
+Before building our model, we explore the distribution and characteristics of the target variable wage. This helps us understand its range, detect anomalies, and ensure it's suitable for predictive modeling.
+
+The summary provides basic descriptive statistics of the wage variable, including the minimum, maximum, mean, median, and quartiles. It helps identify unusual values and assess the scale and spread of the variable.
+
+```{r summary wage}
+
+summary(data$wage)
+
+```
+
+The histogram, overlaid with a density curve, shows the overall distribution of wage values in the dataset. It allows us to visually assess skewness and the presence of any prominent peaks or gaps.
+
+```{r histogram wage }
+
+
+ggplot(data, aes(x = wage)) +
+  geom_histogram(binwidth = 5000, fill = "steelblue", color = "white") +
+  geom_density(aes(y = ..count.. * 5000), color = "red", linewidth = 1) +
+  labs(title = "Distribution of Wage", x = "Wage (USD)", y = "Count")
+
+```
+
+After inspecting the distribution, we observe that a number of respondents have a wage value of 0. These entries do not provide meaningful target values for model training, as no income is recorded. Since our goal is to predict actual wage values, we remove these cases from the dataset.
+
+```{r remove wage equal 0}
+
+# Remove observations where wage equals 0
+data <- data %>% filter(wage > 0)
+
+
+```
 
 
 ## Standardization
-In our wage‐prediction project, predictors such as age, years of experience and various survey counts span very different ranges. Without standardization, variables measured on larger scales would unduly influence our linear regression coefficients and tree‐based splits. If you set the mean to zero and the standard deviation to one, then a one-unit change in each feature will be equivalent to one standard deviation. This makes sure the coefficients are all the same, keeps any regularisation stable, and produces more reliable, easy-to-understand models.
+In our dataset, all features are either categorical variables stored as factors or already one-hot encoded numeric variables (binary 0/1 indicators). Therefore, feature scaling or standardization is not required.
 
-```{r standardization}
-# 1. Identify numeric predictor columns (exclude wage)
-num_preds <- names(data)[sapply(data, is.numeric) & names(data) != "wage"]
+Standardization is typically applied to continuous numeric variables to ensure they are on a comparable scale, especially when using models that are sensitive to feature magnitude (e.g., linear regression, support vector machines, or K-nearest neighbors). However, this is not the case in our setup.
 
-# 2. Center and scale each predictor
-data <- data %>%
-  mutate(across(all_of(num_preds),
-                ~ (. - mean(. , na.rm = TRUE)) / sd(. , na.rm = TRUE)))
+Furthermore, since we plan to use tree-based algorithms for prediction (such as decision trees, random forests, or gradient boosting), standardization would have no effect on model performance. 
 
-# 3. Verify that each now has mean ≈ 0 and SD ≈ 1
-stats <- map_df(num_preds, function(var) {
-  v <- data[[var]]
-  tibble(
-    variable = var,
-    mean     = mean(v, na.rm = TRUE),
-    sd       = sd(v,   na.rm = TRUE)
-  )
-})
+As a result, we proceed without applying any feature scaling, as all variables are already in a format suitable for modeling.
 
-stats %>%
-  kable(
-    caption = "Means and SDs of Predictors After Standardization",
-    digits  = 3
-  )
-
-```
-
-# Feature Selection
+# Correlation Matrix
 Clear justification for selected features. why did we chose the features we have chosen
 
-Use this to determine: 
-t-test for numerical variables?
-calculate p-value for numerical variables?
-Or Boruta algorithm?
+```{r correlation matrix}
+
+# Load required libraries
+library(dplyr)
+library(corrplot)
+
+# Subset only numeric variables (one-hot encoded features)
+numeric_data <- data %>% select(where(is.numeric))
+
+# Compute the correlation matrix
+cor_matrix <- cor(numeric_data, use = "pairwise.complete.obs")
+
+# Extract only pairs with moderate to high correlation (> 0.5 and < 1)
+high_corr <- which(abs(cor_matrix) > 0.5 & abs(cor_matrix) < 1, arr.ind = TRUE)
+
+# Get the unique variable names involved
+high_corr_vars <- unique(c(rownames(cor_matrix)[high_corr[,1]], colnames(cor_matrix)[high_corr[,2]]))
+
+# Filter matrix to those variables only
+cor_matrix_filtered <- cor_matrix[high_corr_vars, high_corr_vars]
+
+# Plot filtered matrix with coefficients
+if (length(high_corr_vars) >= 2) {
+  corrplot(cor_matrix_filtered, method = "color", type = "upper", 
+           addCoef.col = "black", number.cex = 0.6,
+           tl.cex = 0.8, tl.col = "black", order = "hclust",
+           title = "Highly Correlated Features (r > 0.5)", mar=c(0,0,1,0))
+} else {
+  message("No sufficiently correlated features found.")
+}
+
+
+```
 
 # Model Selection
 Describe the chosen model
@@ -386,7 +424,7 @@ Describe the used explanation techniques
 Run explainability techniques
 Clear understanding of which features drive predictions and how they influence wage predictions. 
 
-(Gini importance, permutation feature importance (PDP), Individual Conditional Expections (ICE), Lime, SHAP)
+(permutation feature importance (PDP), Individual Conditional Expections (ICE), Lime, SHAP)
 
 ```{r explainability techniques}
 
