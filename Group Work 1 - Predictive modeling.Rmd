@@ -8,9 +8,7 @@ output: html_document
 # Introduction
 The purpose of this project is to develop a predictive model that estimates individual wages based on a wide range of personal, educational, and professional characteristics. Using the dataset data_wage.RData, our goal is to apply supervised learning techniques to accurately predict the variable of interest, which is the wage.
 
-Beyond predictive accuracy, a key focus of this project is on Explainable Artificial Intelligence (XAI). While machine learning models can uncover complex patterns and deliver powerful predictions, they often operate as black boxes. This raises critical concerns about transparency, fairness, and trust. XAI methods help address these challenges by making model behavior interpretable and understandable. In this project, we apply explainability techniques to identify the key factors driving wage predictions.
-
-Through this approach, we aim not only to build a high-performing model but also to ensure that its predictions are transparent, fair, and justifiable.
+Beyond predictive accuracy, a key focus of this project is on Explainable Artificial Intelligence (XAI). While machine learning models can uncover complex patterns and deliver powerful predictions, they often operate as black boxes. This raises critical concerns about transparency, fairness, and trust. XAI methods help address these challenges by making model behavior interpretable and understandable. In this project, we will apply explainability techniques to identify the key factors driving wage predictions.
 
 We will guide you through the entire process, starting with data exploration and cleaning, followed by model training and testing, and finally using the model to estimate the future salaries of our group members.
 
@@ -192,8 +190,6 @@ Before we can train any reliable machine learning model, we need to ensure that 
 
 In this step, we focus on aligning data types with their intended use  and checking for inconsistencies in how categories are recorded. 
 
-Ensuring consistency at this stage prevents problems during model training and improves both the performance and interpretability of our models.
-
 ### Convert Categorical Variables to Factors
 In this step, we ensure that all categorical variables in the dataset are consistently and correctly formatted by converting them from character type to factor type. This is important because many of our variables — such as gender, education, or job role — represent distinct categories rather than free text. 
 
@@ -320,7 +316,7 @@ ggplot(data, aes(x = wage)) +
 
 ```
 
-**Interpretation: ** The distribution of wage values is **right-skewed**, meaning most individuals earn on the lower end of the spectrum, while fewer earn extremely high wages. This is common in real-world income data and indicates a long tail of high earners. The density curve also shows some bumps in the higher income range, potentially reflecting common salary brackets or reporting artifacts.
+**Interpretation: ** The distribution of wage values is right-skewed, meaning most individuals earn on the lower end of the spectrum, while fewer earn extremely high wages. This is common in real-world income data and indicates a long tail of high earners. The density curve also shows some bumps in the higher income range, potentially reflecting common salary brackets or reporting artifacts.
 
 This skewness suggests that models should be robust to such imbalances and that error metrics sensitive to large deviations (like RMSE) may be particularly affected by high-income outliers.
 
@@ -754,7 +750,7 @@ ggplot(model_metrics, aes(x = Model, y = R2, fill = Model)) +
 **Interpretation and Best Model Selection: **
 The Random Forest and GBM models clearly outperform the Linear Regression model across all evaluated metrics. Among them, GBM achieved the lowest RMSE (26,139.15) and MAE (17,737.60), indicating that it provides the most accurate wage predictions on average. In terms of explanatory power, both GBM (R² = 0.6625) and Random Forest (R² = 0.6551) attained substantially higher R² values than Linear Regression (R² = 0.6242), confirming a stronger ability to explain the variance in wage outcomes.
 
-However, it is important to note that the absolute values of RMSE and MAE are quite large when viewed in relation to the dataset's wage distribution: the median wage is 33,933, and the mean is 46,671, with some values as low as 0 and as high as 177,000. An average absolute error of over 17,000 USD and a root mean squared error exceeding 26,000 USD suggest that the model's predictions can deviate substantially in individual cases. Nevertheless, given the wide range and variance in the target variable, such error levels are not unexpected and can be considered reasonable within the context of this dataset.
+However, it is important to note that the absolute values of RMSE and MAE are quite large when viewed in relation to the dataset's wage distribution. The median wage is 33,933, and the mean is 46,671, with some values as high as 177,000. An average absolute error of over 17,000 USD and a root mean squared error exceeding 26,000 USD suggest that the model's predictions can deviate substantially in individual cases. Nevertheless, given the wide range and variance in the target variable, such error levels are not unexpected and can be considered reasonable within the context of this dataset.
 
 Based on the combined performance in RMSE, MAE, and R², **GBM** emerges as the most effective model and is therefore selected for the next phase, which focuses on explainability.
 
@@ -786,7 +782,7 @@ knitr::include_graphics("gbm_shap_summary.png")
 
 **Interpretation:** The SHAP summary plot illustrates the contribution of each feature to the predicted wage in the GBM model. The most influential feature is clearly the variable country. Respondents from high-income countries (indicated by red-colored points) tend to receive higher wage predictions, while those from lower-income countries (blue points) contribute negatively to the wage outcome. This highlights the strong influence of geographic context on income estimation.
 
-Next in importance is age, where older individuals are associated with higher predicted wages, suggesting a positive effect of age—likely reflecting seniority or experience. Similarly, job_role significantly drives the model, with certain high-paying positions (such as data scientist or ML engineer) pushing the predicted wage upwards, while others (e.g., junior or support roles) have a dampening effect. The industry feature also exhibits substantial variation in contribution, indicating that certain industries are more associated with higher wages than others. Furthermore, years_experience has a strong and mostly positive impact, where individuals with more years of experience tend to have higher predicted incomes.
+Next in importance is age, where older individuals are associated with higher predicted wages, suggesting a positive effect of age—likely reflecting seniority or experience. Similarly, job_role significantly drives the model, with certain high-paying positions pushing the predicted wage upwards, while others have a dampening effect. The industry feature also exhibits substantial variation in contribution, indicating that certain industries are more associated with higher wages than others. Furthermore, years_experience has a strong and mostly positive impact, where individuals with more years of experience tend to have higher predicted incomes.
 
 Moderately important features include variables such as ML_atwork, How.long.have.you.been.writing.code.to.analyze.data., and various aggregated technical feature counts like Activities_Count, Cloud_Count, and ML_Framework_Count. These variables contribute to wage prediction but to a lesser extent compared to the top-ranked demographic and contextual features.
 
@@ -827,7 +823,7 @@ invisible(
 
 ```
 
-**Interpretation:** The PDP for job_role reveals clear differences in expected wage depending on one’s professional position. Roles such as Manager and Research Assistant are associated with higher predicted wages, whereas Student and Data Engineer positions yield comparatively lower estimates. Interestingly, Business Analysts also show a wide wage range, but with a generally lower central trend. The plot suggests that job responsibilities and role seniority play a meaningful part in income variation, even when controlling for other attributes in the model.
+**Interpretation:** The PDP for job_role reveals clear differences in expected wage depending on one’s professional position. Roles such as Manager are associated with higher predicted wages, whereas Student positions yield comparatively lower estimates. Interestingly, Business Analysts also show a wide wage range, but with a generally lower central trend. The plot suggests that job responsibilities and role seniority play a meaningful part in income variation, even when controlling for other attributes in the model.
 
 ```{r pdp gbm age, echo=FALSE, warning=FALSE, message=FALSE}
 
@@ -905,18 +901,39 @@ kable(data_team[, c("name", "predicted_wage")], caption = "Predicted Wages for T
 ```
 
 
-**Interpretation:** After applying the correct feature grouping to match our final GBM model structure, the wage predictions for our team members range from 26,192 to 52,236 USD.
+**Interpretation:** Overall, the predicted wages for our team members — ranging from 26,192 to 52,236 USD — appear relatively low, especially when viewed from a Swiss labor market perspective. However, this outcome is not surprising given that all four of us are still students with little or no professional experience. Age, experience, and demonstrated skill application are all limited in our profiles, which naturally constrains our predicted earning potential in the current model
 
-Surprisingly, Donjet received the highest predicted wage (52,236 USD), despite having the lowest Programming_Count and stating that he does not consider himself a Data Scientist. However, he reported the highest Activities_Count (3) and the most Notebook tools used (3), suggesting a broad practical engagement with machine learning tools. These features — as highlighted in our SHAP summary plot — contribute moderately to wage predictions and may serve as proxies for initiative, applied knowledge, or job readiness.
+When we compare our predictions to the median wage across the entire dataset (Median = 33,933 USD), our results are not as bad as they initially appear. Being below or close to the overall median is reasonable for students without industry experience. However, this comparison also underscores the enormous effect of the country variable. Within the Swiss subset of the dataset, the median wage is 93,635 USD, as shown below, which is nearly three times the global median.
 
-In contrast, Fereshteh, Michael, and Seraina all self-identified as aspiring Data Scientists and reported more time actively coding. However, their Activities_Count was only 1, and they listed fewer tools across Notebooks and Cloud services. Interestingly, they also reported higher counts for ML frameworks and explainability techniques — categories that appeared less influential in our SHAP analysis. This may explain their lower predicted wages (ranging between 26,192 and 27,058 USD), despite their higher technical self-identification.
+```{r wages in switzerland, echo=FALSE, warning=FALSE, message=FALSE}
 
-This divergence highlights a key insight: the model does not reward abstract role labels or isolated skills. Instead, it appears to value breadth and frequency of applied technical activity over depth in niche areas such as explainability or advanced ML frameworks. The model likely learned these associations from broader trends in the training data, where practical, visible engagement (e.g., using multiple notebooks, tools, and datasets) correlates more strongly with wage than theoretical or specialized capabilities.
+summary(data$wage[data$country == "Switzerland"])
+
+```
+
+This contrast demonstrates how geographic context heavily influences income in the model. While our results are not bad in the global context, they are low from a Swiss salary perspectives.
+
+Surprisingly, Donjet received the highest predicted wage by far (52,236 USD). So what is the difference between Donjet and the other group members?
+
+He has the lowest Programming_Count and states that he does not see himself as a data scientist. However, he reported the highest Activities_Count (3) and the most Notebook tools used (3), suggesting a broad practical engagement with machine learning tools. These features, as highlighted in our SHAP summary plot, contribute moderately to wage predictions and may serve as proxies for initiative, applied knowledge, or job readiness.
+
+In contrast, Fereshteh, Michael, and Seraina all reported more time actively coding, which is associated with negative SHAP values and therefore lower wages. Further, their Activities_Count was only 1, and they listed fewer tools across Cloud services — both of which are associated with positive SHAP values and therefore higher predicted wages when present in greater numbers. Interestingly, they also reported higher counts for ML frameworks and explainability techniques.
+
+Although Donjet’s profile differs from the rest of the group only moderately, his advantage across multiple moderately weighted features may have accumulated to yield a significantly higher prediction. This shows how even small differences across several relevant inputs can add up. Finally, it’s worth noting that our model still has a Mean Absolute Error (MAE) of ~17,000 USD, indicating that prediction errors of this magnitude are expected, and some variation must be interpreted with that uncertainty in mind.
+
+This divergence highlights a key insight.The model does not reward abstract role labels or isolated skills. Instead, it appears to value breadth and frequency of applied technical activity over depth areas such as explainability or advanced ML frameworks. The model likely learned these associations from broader trends in the training data, where practical, visible engagement correlates more strongly with wage than theoretical or specialized capabilities.
 
 # Conclusion and Reflections
 The results of our wage prediction exercise offer a humbling yet realistic reflection of our current position in the job market. As early-career individuals with minimal experience and ongoing education, our predicted wages are at the lower end of the observed spectrum. This highlights the importance of not only academic qualifications but also real-world experience, specialized skills, and contextual factors like geography and industry.
 
-While titles such as “Data Scientist” may signal high potential earnings, our findings underscore that job roles alone do not guarantee higher wages. Instead, the model places stronger emphasis on age (as a proxy for seniority), years of experience, and broader professional context. This insight is particularly important for us as students: it reinforces that investing in practical experience, developing a deeper technical portfolio, and understanding market-specific expectations will be essential steps in bridging the gap between ambition and compensation.
+While titles such as “Data Scientist” may signal high potential earnings, our findings underscore that job roles alone do not guarantee higher wages. Instead, the model places stronger emphasis on age, years of experience, and broader professional context. This insight is particularly important for us as students. It reinforces that investing in practical experience, developing a deeper technical portfolio, and understanding market-specific expectations will be essential steps in bridging the gap between ambition and compensation.
 
-Ultimately, this predictive exercise not only evaluated our model’s technical capacity but also served as a mirror — reflecting the gaps we need to close in order to achieve the career outcomes we aspire to. It encourages strategic thinking and continuous development in both our academic and professional journeys.
+**Reflections on Feature Selection**<br>
+One key insight that emerged throughout the modeling and explainability phases was the limited impact of technical features on wage prediction. This was consistently observed in both the SHAP summary plot and the Random Forest feature importance analysis conducted in Phase 1.
+
+Despite initial assumptions that such skills would significantly boost predicted income, the model instead prioritized demographic and contextual variables like country, job role, age, and years of experience. The technical “count” variables derived from grouped one-hot encodings contributed only marginally to overall model performance.
+
+However, the case of Donjet’s notably higher predicted wage suggests that these technical indicators may still influence the outcome at an individual level. Although Donjet shares a similar demographic and experience profile with the rest of the group, he received a substantially higher prediction, likely due to his higher counts in moderately relevant features such as Activities_Count and Cloud_Count. This shows that while technical features may not strongly drive overall model accuracy, they can meaningfully affect individual predictions when accumulated across several dimensions.
+
+Given these findings, we believe that removing the technical count features altogether would likely have little effect on the performance of the model. However, their influence on specific predictions should not be entirely dismissed. 
 
