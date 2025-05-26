@@ -795,31 +795,18 @@ To gain a deeper understanding of how the top three most important features infl
 
 ```{r pdp gbm country, echo=FALSE, warning=FALSE, message=FALSE}
 
-invisible(
-  h2o.partialPlot(
-    object = gbm_model,
-    data = test,
-    cols = "country",
-    nbins = 58,
-    plot = TRUE
-  )
-)
+exp_GBM <- h2o.explain(gbm_model, test)  # Explain the best performing GBM model 
 
+# patial dependecies GBM
+h2o.pd_multi_plot(gbm_model, test, column='country')
+ 
 ```
 
 **Interpretation:** The PDP for the feature country shows a substantial variation in predicted wage across different countries. Some countries are associated with notably higher predicted wages, while others tend to be associated with lower values. The wide error bars reflect a high degree of variability within some countries, likely due to smaller sample sizes or more heterogeneous profiles among respondents. This emphasizes that country-specific context plays a strong role in shaping wage outcomes in the dataset, likely capturing macroeconomic differences such as average income levels, cost of living, or tech-sector maturity.
 
 ```{r pdp gbm job role, echo=FALSE, warning=FALSE, message=FALSE}
 
-invisible(
-  h2o.partialPlot(
-    object = gbm_model,
-    data = test,
-    cols = "job_role",
-    nbins = 58,
-    plot = TRUE
-  )
-)
+h2o.pd_multi_plot(gbm_model, test, column='job_role')
 
 ```
 
@@ -827,15 +814,8 @@ invisible(
 
 ```{r pdp gbm age, echo=FALSE, warning=FALSE, message=FALSE}
 
-invisible(
-  h2o.partialPlot(
-    object = gbm_model,
-    data = test,
-    cols = "age",
-    nbins = 58,
-    plot = TRUE
-  )
-)
+h2o.pd_multi_plot(gbm_model, test, column='age')
+
 
 ```
 
@@ -898,8 +878,17 @@ data_team$name <- c("Donjet", "Fereshteh", "Michael", "Seraina")
 # Display only name and predicted wage
 kable(data_team[, c("name", "predicted_wage")], caption = "Predicted Wages for Team Members")
 
-```
+# individual plots for donjet and fereshteh for comparison
+Donjet<-h2o.explain_row(gbm_model, as.h2o(data_team), row_index = 1)
+Donjet_plot<- h2o.shap_explain_row_plot(gbm_model, as.h2o(data_team), row_index = 1)
+ggsave("Donjet.png", plot = Donjet_plot, width = 8, height = 6, dpi = 300)
+ 
+feresh<-h2o.explain_row(gbm_model, as.h2o(data_team), row_index = 2)
+feresh_plot<- h2o.shap_explain_row_plot(gbm_model, as.h2o(data_team), row_index = 2)
+ggsave("fereshteh.png", plot = feresh_plot, width = 8, height = 6, dpi = 300)
+ 
 
+```
 
 **Interpretation:** Overall, the predicted wages for our team members — ranging from 26,192 to 52,236 USD — appear relatively low, especially when viewed from a Swiss labor market perspective. However, this outcome is not surprising given that all four of us are still students with little or no professional experience. Age, experience, and demonstrated skill application are all limited in our profiles, which naturally constrains our predicted earning potential in the current model
 
@@ -923,6 +912,33 @@ Although Donjet’s profile differs from the rest of the group only moderately, 
 
 This divergence highlights a key insight.The model does not reward abstract role labels or isolated skills. Instead, it appears to value breadth and frequency of applied technical activity over depth areas such as explainability or advanced ML frameworks. The model likely learned these associations from broader trends in the training data, where practical, visible engagement correlates more strongly with wage than theoretical or specialized capabilities.
 
+To better understand these differences, we now compare the SHAP explanation plots of Donjet, who received the highest wage prediction, and Fereshteh, who received the lowest.
+
+**Comparison of SHAP Explanations: Donjet vs. Fereshteh** <br>
+While both individuals share a similar demographic profile — they are students from Switzerland, aged 22–24, with minimal experience and a Bachelor's degree in a quantitative field — their predicted wages differ considerably. Donjet received a predicted wage of 52,236 USD, while Fereshteh’s prediction was much lower at 26,192 USD.
+
+```{r compare donjet and fereshteh, echo=FALSE, warning=FALSE, message=FALSE} 
+
+# Display Donjet's SHAP plot
+knitr::include_graphics("Donjet.png")
+
+# Optional: add a descriptive caption in markdown
+cat("**Figure:** SHAP Explanation Plot for Donjet\n\n")
+
+# Display Fereshteh's SHAP plot
+knitr::include_graphics("fereshteh.png")
+
+# Optional: add a descriptive caption in markdown
+cat("**Figure:** SHAP Explanation Plot for Fereshteh\n\n")
+
+```
+
+A closer examination of the SHAP explanation plots for Donjet and Fereshteh reveals notable differences in how individual features contribute to their respective wage predictions. In Donjet’s case, the most prominent positive SHAP contribution comes from the variable country, with Switzerland providing a substantial boost to the predicted wage. What stands out most, however, is the strong positive impact of Visualization_Count, which, at a value of 5, has a significant upward influence. This feature alone contributes notably more to Donjet’s prediction than any technical feature does in Fereshteh’s case. Additionally, Donjet’s Explainability_Count and Activities_Count also add positive, smaller, contributions, creating a cumulative effect that helps explain his high predicted wage.
+
+In contrast, Fereshteh’s SHAP plot shows a much more concentrated influence. Her wage prediction is driven almost exclusively by country, which, as with Donjet, offers a strong positive SHAP value. The second most relevant contribution comes from ML_Framework_Count, which has a smaller but still positive effect. Interestingly, Fereshteh reports a Visualization_Count of 4 — only slightly below Donjet’s value of 5 — yet this feature contributes very little to her wage prediction. The same holds true for her Explainability_Count and Activities_Count, which barely influence the model’s output.
+
+This comparison suggests that while both profiles share similar demographic features and technical backgrounds, the model reacts differently to specific combinations of inputs. Donjet’s profile appears to benefit from a synergy between several moderately weighted features, especially the impactful role of visualization tools, whereas Fereshteh’s relies more narrowly on location and lacks the additional technical indicators that the model associates with higher income potential.
+
 # Conclusion and Reflections
 The results of our wage prediction exercise offer a humbling yet realistic reflection of our current position in the job market. As early-career individuals with minimal experience and ongoing education, our predicted wages are at the lower end of the observed spectrum. This highlights the importance of not only academic qualifications but also real-world experience, specialized skills, and contextual factors like geography and industry.
 
@@ -936,4 +952,5 @@ Despite initial assumptions that such skills would significantly boost predicted
 However, the case of Donjet’s notably higher predicted wage suggests that these technical indicators may still influence the outcome at an individual level. Although Donjet shares a similar demographic and experience profile with the rest of the group, he received a substantially higher prediction, likely due to his higher counts in moderately relevant features such as Activities_Count and Cloud_Count. This shows that while technical features may not strongly drive overall model accuracy, they can meaningfully affect individual predictions when accumulated across several dimensions.
 
 Given these findings, we believe that removing the technical count features altogether would likely have little effect on the performance of the model. However, their influence on specific predictions should not be entirely dismissed. 
+
 
